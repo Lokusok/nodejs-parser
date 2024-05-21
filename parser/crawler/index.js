@@ -11,10 +11,11 @@ export class Crawler {
   /**
    * Конструктор, позволяющий установить параметры для дальнейших действий
    */
-  constructor({ baseUrl, urlParams, maxPage, dataWriter }) {
+  constructor({ baseUrl, urlParams, maxPage, dataWriter, logger }) {
     this.baseURL = baseUrl;
     this.urlParams = new URLSearchParams(urlParams);
     this.maxPage = maxPage;
+    this.logger = logger ?? console;
 
     this.makeFullUrl();
     
@@ -59,7 +60,7 @@ export class Crawler {
    * Уведомить в логах об окончании парсинга
    */
   logFinal() {
-    console.log(`${new Date().toLocaleString()}: Парсинг завершён`);
+    this.logger.log(`${new Date().toLocaleString()}: Парсинг завершён`);
   }
 
   /**
@@ -68,7 +69,7 @@ export class Crawler {
    * @param onParse Действие при получении данных
    */
   async fetchList(parseAlg, onParse) {
-    console.log(`${new Date().toLocaleString()} Парсинг ${this.urlParams.get('page')} страницы`);
+    this.logger.log(`${new Date().toLocaleString()} Парсинг ${this.urlParams.get('page')} страницы`);
 
     const response = await fetch(this.fullUrl);
     const text = await response.text();
@@ -83,7 +84,8 @@ export class Crawler {
 
     Array.from(parseEntitiesList).forEach((entity) => parseAlg(entity, onParse));
 
-    if (+this.urlParams.get('page') < this.maxPage) {
+    const currentPage = this.urlParams.get('page')
+    if (Number(currentPage) < this.maxPage) {
       this.setPage(+this.urlParams.get('page') + 1);
       this.fetchList(Crawler.analyzeVacancy, onParse);
     } else {
