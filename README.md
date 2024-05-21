@@ -1,4 +1,4 @@
-# Парсер на nodejs
+# Парсер на Node.JS
 
 ### Запуск - `npm start`
 
