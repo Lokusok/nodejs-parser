@@ -1,8 +1,8 @@
-import { EventEmitter } from 'events';
-import { JSDOM } from 'jsdom';
+import { EventEmitter } from "events";
+import { JSDOM } from "jsdom";
 
-const PARAMS_CHANGE_EVENT = 'paramsChange';
-const IS_END_CHANGE_EVENT = 'isEndChange';
+const PARAMS_CHANGE_EVENT = "paramsChange";
+const IS_END_CHANGE_EVENT = "isEndChange";
 
 /**
  * Парсер
@@ -18,32 +18,32 @@ export class Crawler {
     this.logger = logger ?? console;
 
     this.makeFullUrl();
-    
+
     this.emitter = new EventEmitter();
     this.emitter.on(PARAMS_CHANGE_EVENT, () => this.makeFullUrl());
     this.emitter.on(IS_END_CHANGE_EVENT, () => {
       if (this.isEnd) this.logFinal();
     });
-    
+
     this.setIsEnd(false);
 
     this.dataWriter = dataWriter;
-    this.dataWriter?.writeLine('вакансия,компания,информация,адрес,информация');
+    this.dataWriter?.writeLine("вакансия,компания,информация,адрес,информация");
   }
 
   /**
    * Сконструировать полный URL из свойств baseUrl и urlParams
    */
   makeFullUrl() {
-    this.fullUrl = this.baseURL + '?' + this.urlParams.toString();
+    this.fullUrl = this.baseURL + "?" + this.urlParams.toString();
   }
 
   /**
    * Установить страницу пагинации
-   * @param {Number} page 
+   * @param {Number} page
    */
   setPage(page) {
-    this.urlParams.set('page', page);
+    this.urlParams.set("page", page);
     this.emitter.emit(PARAMS_CHANGE_EVENT);
   }
 
@@ -69,24 +69,31 @@ export class Crawler {
    * @param onParse Действие при получении данных
    */
   async fetchList(parseAlg, onParse) {
-    this.logger.log(`${new Date().toLocaleString()} Парсинг ${this.urlParams.get('page')} страницы`);
+    this.logger.log(
+      `${new Date().toLocaleString()} Парсинг ${this.urlParams.get(
+        "page"
+      )} страницы`
+    );
 
     const response = await fetch(this.fullUrl);
     const text = await response.text();
     const html = new JSDOM(text);
 
-    const parseEntitiesList = html.window.document.querySelectorAll('.serp-item');
+    const parseEntitiesList =
+      html.window.document.querySelectorAll(".serp-item");
 
     if (!parseEntitiesList.length) {
       this.setIsEnd(true);
       return;
     }
 
-    Array.from(parseEntitiesList).forEach((entity) => parseAlg(entity, onParse));
+    Array.from(parseEntitiesList).forEach((entity) =>
+      parseAlg(entity, onParse)
+    );
 
-    const currentPage = this.urlParams.get('page')
+    const currentPage = this.urlParams.get("page");
     if (Number(currentPage) < this.maxPage) {
-      this.setPage(+this.urlParams.get('page') + 1);
+      this.setPage(+this.urlParams.get("page") + 1);
       this.fetchList(Crawler.analyzeVacancy, onParse);
     } else {
       this.setIsEnd(true);
@@ -95,19 +102,30 @@ export class Crawler {
 
   /**
    * Получить данные о вакансии
-   * @param {HTMLDivElement} vacancyHtmlNode 
+   * @param {HTMLDivElement} vacancyHtmlNode
    * @param {Function} onParse
-   * @returns 
+   * @returns
    */
   static analyzeVacancy(vacancyHtmlNode, onParse) {
-    const title = vacancyHtmlNode.querySelector('.serp-item__title-link').textContent;
-    const companyName = vacancyHtmlNode.querySelector('[class*="vacancy-serp-item__meta-info-company"]')?.textContent;
-    const address = vacancyHtmlNode.querySelector('[data-qa*="vacancy-serp__vacancy-address"]').textContent;
-    
-    const infoList = vacancyHtmlNode.querySelectorAll('[data-qa*="compensation"]');
-    const info = Array.from(infoList).reduce((acc, val) => acc + val.textContent, '');
-    const resInfo = info.length ? info : 'Отсутствует'
+    const title = vacancyHtmlNode.querySelector(
+      ".serp-item__title-link"
+    ).textContent;
+    const companyName = vacancyHtmlNode.querySelector(
+      '[class*="vacancy-serp-item__meta-info-company"]'
+    )?.textContent;
+    const address = vacancyHtmlNode.querySelector(
+      '[data-qa*="vacancy-serp__vacancy-address"]'
+    ).textContent;
 
-    onParse({ title, companyName, address, resInfo, });
+    const infoList = vacancyHtmlNode.querySelectorAll(
+      '[data-qa*="compensation"]'
+    );
+    const info = Array.from(infoList).reduce(
+      (acc, val) => acc + val.textContent,
+      ""
+    );
+    const resInfo = info.length ? info : "Отсутствует";
+
+    onParse({ title, companyName, address, resInfo });
   }
 }
