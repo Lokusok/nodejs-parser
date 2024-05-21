@@ -1,8 +1,8 @@
-import { EventEmitter } from "events";
-import { JSDOM } from "jsdom";
+import { EventEmitter } from 'events';
+import { JSDOM } from 'jsdom';
 
-const PARAMS_CHANGE_EVENT = "paramsChange";
-const IS_END_CHANGE_EVENT = "isEndChange";
+const PARAMS_CHANGE_EVENT = 'paramsChange';
+const IS_END_CHANGE_EVENT = 'isEndChange';
 
 /**
  * Парсер
@@ -22,20 +22,23 @@ export class Crawler {
     this.emitter = new EventEmitter();
     this.emitter.on(PARAMS_CHANGE_EVENT, () => this.makeFullUrl());
     this.emitter.on(IS_END_CHANGE_EVENT, () => {
-      if (this.isEnd) this.logFinal();
+      if (this.isEnd) {
+        this.logFinal();
+        this.dataWriter.close?.();
+      }
     });
 
     this.setIsEnd(false);
 
     this.dataWriter = dataWriter;
-    this.dataWriter?.writeLine("вакансия,компания,информация,адрес,информация");
+    this.dataWriter?.writeLine('вакансия,компания,информация,адрес,информация');
   }
 
   /**
    * Сконструировать полный URL из свойств baseUrl и urlParams
    */
   makeFullUrl() {
-    this.fullUrl = this.baseURL + "?" + this.urlParams.toString();
+    this.fullUrl = this.baseURL + '?' + this.urlParams.toString();
   }
 
   /**
@@ -43,7 +46,7 @@ export class Crawler {
    * @param {Number} page
    */
   setPage(page) {
-    this.urlParams.set("page", page);
+    this.urlParams.set('page', page);
     this.emitter.emit(PARAMS_CHANGE_EVENT);
   }
 
@@ -71,7 +74,7 @@ export class Crawler {
   async fetchList(parseAlg, onParse) {
     this.logger.log(
       `${new Date().toLocaleString()} Парсинг ${this.urlParams.get(
-        "page"
+        'page'
       )} страницы`
     );
 
@@ -80,7 +83,7 @@ export class Crawler {
     const html = new JSDOM(text);
 
     const parseEntitiesList =
-      html.window.document.querySelectorAll(".serp-item");
+      html.window.document.querySelectorAll('.serp-item');
 
     if (!parseEntitiesList.length) {
       this.setIsEnd(true);
@@ -91,9 +94,9 @@ export class Crawler {
       parseAlg(entity, onParse)
     );
 
-    const currentPage = this.urlParams.get("page");
+    const currentPage = this.urlParams.get('page');
     if (Number(currentPage) < this.maxPage) {
-      this.setPage(+this.urlParams.get("page") + 1);
+      this.setPage(+this.urlParams.get('page') + 1);
       this.fetchList(Crawler.analyzeVacancy, onParse);
     } else {
       this.setIsEnd(true);
@@ -108,7 +111,7 @@ export class Crawler {
    */
   static analyzeVacancy(vacancyHtmlNode, onParse) {
     const title = vacancyHtmlNode.querySelector(
-      ".serp-item__title-link"
+      '.serp-item__title-link'
     ).textContent;
     const companyName = vacancyHtmlNode.querySelector(
       '[class*="vacancy-serp-item__meta-info-company"]'
@@ -122,9 +125,9 @@ export class Crawler {
     );
     const info = Array.from(infoList).reduce(
       (acc, val) => acc + val.textContent,
-      ""
+      ''
     );
-    const resInfo = info.length ? info : "Отсутствует";
+    const resInfo = info.length ? info : 'Отсутствует';
 
     onParse({ title, companyName, address, resInfo });
   }
